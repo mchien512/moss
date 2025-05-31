@@ -1,1 +1,96 @@
 package entry
+
+import (
+	"context"
+	"errors"
+	_ "lumo/internal/models/entry"
+	models "lumo/internal/models/entry"
+	entryRepo "lumo/internal/repository/entry"
+	"time"
+)
+
+var (
+	ErrInvalidEntry = errors.New("invalid entry")
+	ErrUnauthorized = errors.New("unauthorized access")
+)
+
+type App interface {
+	CreateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error)
+	GetEntry(ctx context.Context, id string, userID string) (*models.Entry, error)
+	UpdateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error)
+	DeleteEntry(ctx context.Context, id string, userID string) error
+	ListEntries(ctx context.Context, userID string) ([]*models.Entry, error)
+	SyncEntries(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error)
+}
+
+type app struct {
+	repo entryRepo.Repository
+}
+
+func NewApp(repo entryRepo.Repository) App {
+	return &app{
+		repo: repo,
+	}
+}
+
+func (a *app) CreateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error) {
+	if err := entry.Validate(); err != nil {
+		return nil, ErrInvalidEntry
+	}
+
+	return a.repo.Create(ctx, entry)
+}
+
+func (a *app) GetEntry(ctx context.Context, id string, userID string) (*models.Entry, error) {
+	entry, err := a.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure user can only access their own entries
+	if entry.UserID != userID {
+		return nil, ErrUnauthorized
+	}
+
+	return entry, nil
+}
+
+func (a *app) UpdateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error) {
+	if err := entry.Validate(); err != nil {
+		return nil, ErrInvalidEntry
+	}
+
+	// Verify ownership
+	existing, err := a.repo.GetByID(ctx, entry.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	if existing.UserID != entry.UserID {
+		return nil, ErrUnauthorized
+	}
+
+	return a.repo.Update(ctx, entry)
+}
+
+func (a *app) DeleteEntry(ctx context.Context, id string, userID string) error {
+	// Verify ownership
+	existing, err := a.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if existing.UserID != userID {
+		return ErrUnauthorized
+	}
+
+	return a.repo.Delete(ctx, id)
+}
+
+func (a *app) ListEntries(ctx context.Context, userID string) ([]*models.Entry, error) {
+	return a.repo.ListByUser(ctx, userID)
+}
+
+func (a *app) SyncEntries(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error) {
+	return a.repo.ListByUserSince(ctx, userID, since)
+}

@@ -41,3 +41,30 @@ proto-clean:
 	@echo "🧹 Removing generated code under $(PROTO_DST)/…"
 	rm -rf $(PROTO_DST)
 	@echo "✅ $(PROTO_DST)/ cleaned."
+
+
+
+.PHONY: up down psql init sqlc
+
+# Start postgres container
+up:
+	docker-compose up -d postgres
+
+# Stop postgres container
+down:
+	docker-compose down
+
+# Connect to postgres
+psql:
+	docker-compose exec postgres psql -U postgres -d lumo_db
+
+# Initialize/reset database tables
+init:
+	docker-compose exec postgres psql -U postgres -d lumo_db -f /docker-entrypoint-initdb.d/schema.sql
+
+# Generate SQLC code
+sqlc:
+	sqlc generate
+
+
+

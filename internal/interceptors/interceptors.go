@@ -46,9 +46,9 @@ func UnaryServerInterceptor() grpc.UnaryServerInterceptor {
 		duration := time.Since(start)
 		if err != nil {
 			st, _ := status.FromError(err)
-			log.Printf("❌ [%s] %s failed (%s): %s", requestID, info.FullMethod, duration, st.Message())
+			log.Printf("[%s] %s failed (%s): %s", requestID, info.FullMethod, duration, st.Message())
 		} else {
-			log.Printf("✅ [%s] %s completed in %s", requestID, info.FullMethod, duration)
+			log.Printf("[%s] %s completed in %s", requestID, info.FullMethod, duration)
 		}
 
 		return resp, err
