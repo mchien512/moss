@@ -1,0 +1,56 @@
+# Binaries and object files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go specific
+/bin/
+/pkg/
+/vendor/
+
+# Generated protobuf files (if you want to ignore them)
+*.pb.go
+*_grpc.pb.go
+/internal/genproto/
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Environment files
+.env
+*.env
+.env.local
+.env.*.local
+
+# Log files
+*.log
+
+# Database files
+*.db
+*.sqlite
+
+# Binary folder if you're building to a specific directory
+/build/
+/dist/
+
+# Temporary files
+tmp/
+temp/
+
+# Dependencies
+go.sum
+
+# Docker volumes (if you're using Docker)
+/data/
+/postgres-data/
+
+# Debug files
+__debug_bin

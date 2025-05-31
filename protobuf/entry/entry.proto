@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package lumo.entry;
+
+option go_package = "lumo/internal/genproto/entry;entry";
+
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service EntryService {
+  rpc CreateEntry(CreateEntryRequest) returns (Entry);
+  rpc GetEntry(GetEntryRequest) returns (Entry);
+  rpc UpdateEntry(UpdateEntryRequest) returns (Entry);
+  rpc DeleteEntry(DeleteEntryRequest) returns (google.protobuf.Empty);
+  rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse);
+  rpc SyncEntries(SyncEntriesRequest) returns (ListEntriesResponse);
+}
+
+message Entry {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string content = 4;
+  string mood = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateEntryRequest {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string content = 4;
+  string mood = 5;
+  google.protobuf.Timestamp created_at = 6;
+}
+
+message GetEntryRequest {
+  string id = 1;
+}
+
+message UpdateEntryRequest {
+  string id = 1;
+  string user_id = 2;
+  string title = 3;
+  string content = 4;
+  string mood = 5;
+  google.protobuf.Timestamp updated_at = 6;
+}
+
+message DeleteEntryRequest {
+  string id = 1;
+  string user_id = 2;
+}
+
+message ListEntriesRequest {
+  string user_id = 1;
+}
+
+message ListEntriesResponse {
+  repeated Entry entries = 1;
+}
+
+message SyncEntriesRequest {
+  string user_id = 1;
+  google.protobuf.Timestamp since = 2;
+}
