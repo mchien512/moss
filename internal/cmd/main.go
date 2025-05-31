@@ -2,6 +2,7 @@ package main
 
 import (
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"lumo/internal/app/entry"
 	pb "lumo/internal/genproto/entry"
@@ -47,6 +48,8 @@ func main() {
 
 	// Register service
 	pb.RegisterEntryServiceServer(s, service)
+
+	reflection.Register(s)
 
 	log.Printf("Server listening at %v", lis.Addr())
 	if err := s.Serve(lis); err != nil {

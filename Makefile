@@ -44,27 +44,26 @@ proto-clean:
 
 
 
-.PHONY: up down psql init sqlc
-
 # Start postgres container
 up:
 	docker-compose up -d postgres
+	@echo "Waiting for postgres to be ready..."
+	@sleep 3
 
 # Stop postgres container
 down:
 	docker-compose down
 
-# Connect to postgres
+# Connect to postgres - using docker exec instead of docker-compose exec
 psql:
-	docker-compose exec postgres psql -U postgres -d lumo_db
+	@if [ "$$(docker ps -q -f name=lumo-postgres-1)" ]; then \
+		docker exec -it lumo-postgres-1 psql -U postgres -d lumo_db; \
+	else \
+		echo "Postgres is not running. Starting it now..."; \
+		$(MAKE) up; \
+		docker exec -it lumo_db psql -U postgres -d lumo_db; \
+	fi
 
-# Initialize/reset database tables
-init:
-	docker-compose exec postgres psql -U postgres -d lumo_db -f /docker-entrypoint-initdb.d/schema.sql
-
-# Generate SQLC code
-sqlc:
-	sqlc generate
 
 
 

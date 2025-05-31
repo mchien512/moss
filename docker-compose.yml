@@ -1,5 +1,6 @@
 services:
   postgres:
+    container_name: lumo-db
     image: postgres:latest
     environment:
       POSTGRES_USER: postgres
