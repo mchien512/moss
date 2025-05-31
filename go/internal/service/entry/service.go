@@ -2,27 +2,26 @@ package entry
 
 import (
 	"context"
+	entryApp "lumo/go/internal/app/entry"
+	entry2 "lumo/go/internal/genproto/entry"
+	"lumo/go/internal/models/entry"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-
-	entryApp "lumo/internal/app/entry"
-	pb "lumo/internal/genproto/entry"
-	models "lumo/internal/models/entry"
 )
 
 type service struct {
-	pb.UnimplementedEntryServiceServer
+	entry2.UnimplementedEntryServiceServer
 	app entryApp.App
 }
 
-func NewService(app entryApp.App) pb.EntryServiceServer {
+func NewService(app entryApp.App) entry2.EntryServiceServer {
 	return &service{app: app}
 }
 
-func (s *service) CreateEntry(ctx context.Context, req *pb.CreateEntryRequest) (*pb.Entry, error) {
+func (s *service) CreateEntry(ctx context.Context, req *entry2.CreateEntryRequest) (*entry2.Entry, error) {
 	domainEntry := &models.Entry{
 		ID:        req.Id,
 		UserID:    req.UserId,
@@ -40,7 +39,7 @@ func (s *service) CreateEntry(ctx context.Context, req *pb.CreateEntryRequest) (
 		return nil, status.Errorf(codes.Internal, "failed to create entry: %v", err)
 	}
 
-	return &pb.Entry{
+	return &entry2.Entry{
 		Id:        created.ID,
 		UserId:    created.UserID,
 		Title:     created.Title,
@@ -51,7 +50,7 @@ func (s *service) CreateEntry(ctx context.Context, req *pb.CreateEntryRequest) (
 	}, nil
 }
 
-func (s *service) GetEntry(ctx context.Context, req *pb.GetEntryRequest) (*pb.Entry, error) {
+func (s *service) GetEntry(ctx context.Context, req *entry2.GetEntryRequest) (*entry2.Entry, error) {
 	// In production, you would extract userID from context/auth token
 	userID := "user-id-from-auth" // TODO: implement proper auth
 
@@ -65,7 +64,7 @@ func (s *service) GetEntry(ctx context.Context, req *pb.GetEntryRequest) (*pb.En
 		}
 	}
 
-	return &pb.Entry{
+	return &entry2.Entry{
 		Id:        entry.ID,
 		UserId:    entry.UserID,
 		Title:     entry.Title,
@@ -76,7 +75,7 @@ func (s *service) GetEntry(ctx context.Context, req *pb.GetEntryRequest) (*pb.En
 	}, nil
 }
 
-func (s *service) UpdateEntry(ctx context.Context, req *pb.UpdateEntryRequest) (*pb.Entry, error) {
+func (s *service) UpdateEntry(ctx context.Context, req *entry2.UpdateEntryRequest) (*entry2.Entry, error) {
 	domainEntry := &models.Entry{
 		ID:        req.Id,
 		UserID:    req.UserId,
@@ -98,7 +97,7 @@ func (s *service) UpdateEntry(ctx context.Context, req *pb.UpdateEntryRequest) (
 		}
 	}
 
-	return &pb.Entry{
+	return &entry2.Entry{
 		Id:        updated.ID,
 		UserId:    updated.UserID,
 		Title:     updated.Title,
@@ -109,7 +108,7 @@ func (s *service) UpdateEntry(ctx context.Context, req *pb.UpdateEntryRequest) (
 	}, nil
 }
 
-func (s *service) DeleteEntry(ctx context.Context, req *pb.DeleteEntryRequest) (*emptypb.Empty, error) {
+func (s *service) DeleteEntry(ctx context.Context, req *entry2.DeleteEntryRequest) (*emptypb.Empty, error) {
 	err := s.app.DeleteEntry(ctx, req.Id, req.UserId)
 	if err != nil {
 		switch err {
@@ -123,15 +122,15 @@ func (s *service) DeleteEntry(ctx context.Context, req *pb.DeleteEntryRequest) (
 	return &emptypb.Empty{}, nil
 }
 
-func (s *service) ListEntries(ctx context.Context, req *pb.ListEntriesRequest) (*pb.ListEntriesResponse, error) {
+func (s *service) ListEntries(ctx context.Context, req *entry2.ListEntriesRequest) (*entry2.ListEntriesResponse, error) {
 	entries, err := s.app.ListEntries(ctx, req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list entries: %v", err)
 	}
 
-	protoEntries := make([]*pb.Entry, len(entries))
+	protoEntries := make([]*entry2.Entry, len(entries))
 	for i, entry := range entries {
-		protoEntries[i] = &pb.Entry{
+		protoEntries[i] = &entry2.Entry{
 			Id:        entry.ID,
 			UserId:    entry.UserID,
 			Title:     entry.Title,
@@ -142,20 +141,20 @@ func (s *service) ListEntries(ctx context.Context, req *pb.ListEntriesRequest) (
 		}
 	}
 
-	return &pb.ListEntriesResponse{
+	return &entry2.ListEntriesResponse{
 		Entries: protoEntries,
 	}, nil
 }
 
-func (s *service) SyncEntries(ctx context.Context, req *pb.SyncEntriesRequest) (*pb.ListEntriesResponse, error) {
+func (s *service) SyncEntries(ctx context.Context, req *entry2.SyncEntriesRequest) (*entry2.ListEntriesResponse, error) {
 	entries, err := s.app.SyncEntries(ctx, req.UserId, req.Since.AsTime())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to sync entries: %v", err)
 	}
 
-	protoEntries := make([]*pb.Entry, len(entries))
+	protoEntries := make([]*entry2.Entry, len(entries))
 	for i, entry := range entries {
-		protoEntries[i] = &pb.Entry{
+		protoEntries[i] = &entry2.Entry{
 			Id:        entry.ID,
 			UserId:    entry.UserID,
 			Title:     entry.Title,
@@ -166,7 +165,7 @@ func (s *service) SyncEntries(ctx context.Context, req *pb.SyncEntriesRequest) (
 		}
 	}
 
-	return &pb.ListEntriesResponse{
+	return &entry2.ListEntriesResponse{
 		Entries: protoEntries,
 	}, nil
 }

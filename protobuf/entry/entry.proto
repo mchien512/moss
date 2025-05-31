@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package lumo.entry;
 
-option go_package = "lumo/internal/genproto/entry;entry";
+option go_package = "moss/internal/genproto/entry;entry";
 
 
 import "google/protobuf/timestamp.proto";

@@ -4,12 +4,12 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"log"
-	"lumo/internal/app/entry"
-	pb "lumo/internal/genproto/entry"
-	"lumo/internal/interceptors"
-	"lumo/internal/repository/db"
-	entryRepo "lumo/internal/repository/entry"
-	entryService "lumo/internal/service/entry"
+	"lumo/go/internal/app/entry"
+	pb "lumo/go/internal/genproto/entry"
+	"lumo/go/internal/interceptors"
+	"lumo/go/internal/repository/db"
+	entryRepo "lumo/go/internal/repository/entry"
+	entryService "lumo/go/internal/service/entry"
 	"net"
 )
 
@@ -20,7 +20,7 @@ func main() {
 		Port:     5432,
 		User:     "postgres",
 		Password: "postgres",
-		DBName:   "lumo_db",
+		DBName:   "moss_db",
 		SSLMode:  "disable",
 	}
 

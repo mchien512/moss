@@ -4,10 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	db2 "lumo/internal/repository/db/sqlc"
+	"lumo/go/internal/models/entry"
+	"lumo/go/internal/repository/db/sqlc"
 	"time"
-
-	models "lumo/internal/models/entry"
 )
 
 var ErrEntryNotFound = errors.New("entry not found")
@@ -22,12 +21,12 @@ type Repository interface {
 }
 
 type repository struct {
-	queries *db2.Queries
+	queries *db.Queries
 }
 
 func NewRepository(dbConn *sql.DB) Repository {
 	return &repository{
-		queries: db2.New(dbConn),
+		queries: db.New(dbConn),
 	}
 }
 
@@ -36,7 +35,7 @@ func (r *repository) Create(ctx context.Context, e *models.Entry) (*models.Entry
 	e.CreatedAt = now
 	e.UpdatedAt = now
 
-	entry, err := r.queries.CreateEntry(ctx, db2.CreateEntryParams{
+	entry, err := r.queries.CreateEntry(ctx, db.CreateEntryParams{
 		ID:        e.ID,
 		UserID:    e.UserID,
 		Title:     e.Title,
@@ -75,7 +74,7 @@ func (r *repository) Update(ctx context.Context, e *models.Entry) (*models.Entry
 	now := time.Now().UTC()
 	e.UpdatedAt = now
 
-	entry, err := r.queries.UpdateEntry(ctx, db2.UpdateEntryParams{
+	entry, err := r.queries.UpdateEntry(ctx, db.UpdateEntryParams{
 		ID:        e.ID,
 		Title:     e.Title,
 		Content:   e.Content,
@@ -103,7 +102,7 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 }
 
 func (r *repository) ListByUserSince(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error) {
-	entries, err := r.queries.ListEntriesByUserSince(ctx, db2.ListEntriesByUserSinceParams{
+	entries, err := r.queries.ListEntriesByUserSince(ctx, db.ListEntriesByUserSinceParams{
 		UserID:    userID,
 		UpdatedAt: since,
 	})
@@ -114,7 +113,7 @@ func (r *repository) ListByUserSince(ctx context.Context, userID string, since t
 }
 
 // Helper functions to convert between SQLC and domain models
-func fromDBEntry(e db2.Entry) *models.Entry {
+func fromDBEntry(e db.Entry) *models.Entry {
 	return &models.Entry{
 		ID:        e.ID,
 		UserID:    e.UserID,
@@ -126,7 +125,7 @@ func fromDBEntry(e db2.Entry) *models.Entry {
 	}
 }
 
-func fromDBEntries(entries []db2.Entry) []*models.Entry {
+func fromDBEntries(entries []db.Entry) []*models.Entry {
 	result := make([]*models.Entry, len(entries))
 	for i, e := range entries {
 		result[i] = fromDBEntry(e)

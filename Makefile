@@ -6,7 +6,7 @@
 PROTO_SRC := protobuf
 
 # 2) Base directory where generated Go code will be written:
-PROTO_DST := internal/genproto
+PROTO_DST := go/internal/genproto
 
 # 3) Find every .proto file under $(PROTO_SRC):
 PROTO_FILES := $(shell find $(PROTO_SRC) -name "*.proto")
@@ -65,7 +65,7 @@ db-reset:
 # Connect to PostgreSQL using psql
 db-psql:
 	@echo "🔌 Connecting to PostgreSQL..."
-	docker-compose exec postgres psql -U postgres -d lumo_db
+	docker-compose exec postgres psql -U postgres -d moss_db
 
 # Database down command - removes containers and optionally volumes
 .PHONY: db-down db-down-v

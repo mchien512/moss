@@ -15,7 +15,7 @@
 # Generated protobuf files (if you want to ignore them)
 *.pb.go
 *_grpc.pb.go
-/internal/genproto/
+/go/internal/genproto/
 
 # IDE specific files
 .idea/

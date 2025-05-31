@@ -3,9 +3,9 @@ package entry
 import (
 	"context"
 	"errors"
+	"lumo/go/internal/models/entry"
+	entryRepo "lumo/go/internal/repository/entry"
 	_ "lumo/internal/models/entry"
-	models "lumo/internal/models/entry"
-	entryRepo "lumo/internal/repository/entry"
 	"time"
 )
 

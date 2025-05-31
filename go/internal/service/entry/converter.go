@@ -1,8 +1,8 @@
 package entry
 
 import (
-	"lumo/internal/genproto/entry"
-	models "lumo/internal/models/entry"
+	"lumo/go/internal/genproto/entry"
+	"lumo/go/internal/models/entry"
 )
 
 // ConvertProtoToDomain converts a proto entry to a domain model entry
