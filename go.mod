@@ -1,4 +1,4 @@
-module lumo
+module moss
 
 go 1.24.3
 

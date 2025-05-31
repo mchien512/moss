@@ -2,9 +2,10 @@ package entry
 
 import (
 	"context"
-	entryApp "lumo/go/internal/app/entry"
-	entry2 "lumo/go/internal/genproto/entry"
-	"lumo/go/internal/models/entry"
+
+	entryApp "moss/go/internal/app/entry"
+	entrypb "moss/go/internal/genproto/entry"
+	models "moss/go/internal/models/entry"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -12,23 +13,25 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+// service implements entrypb.EntryServiceServer
 type service struct {
-	entry2.UnimplementedEntryServiceServer
+	entrypb.UnimplementedEntryServiceServer
 	app entryApp.App
 }
 
-func NewService(app entryApp.App) entry2.EntryServiceServer {
+// NewService constructs a new gRPC service for entries.
+func NewService(app entryApp.App) entrypb.EntryServiceServer {
 	return &service{app: app}
 }
 
-func (s *service) CreateEntry(ctx context.Context, req *entry2.CreateEntryRequest) (*entry2.Entry, error) {
+// CreateEntry RPC must return *CreateEntryResponse
+func (s *service) CreateEntry(ctx context.Context, req *entrypb.CreateEntryRequest) (*entrypb.CreateEntryResponse, error) {
 	domainEntry := &models.Entry{
-		ID:        req.Id,
-		UserID:    req.UserId,
-		Title:     req.Title,
-		Content:   req.Content,
-		Mood:      req.Mood,
-		CreatedAt: req.CreatedAt.AsTime(),
+		ID:          req.Id,
+		UserID:      req.UserId,
+		Title:       req.Title,
+		Content:     req.Content,
+		GrowthStage: models.GrowthStage(req.GrowthStage.String()),
 	}
 
 	created, err := s.app.CreateEntry(ctx, domainEntry)
@@ -39,22 +42,17 @@ func (s *service) CreateEntry(ctx context.Context, req *entry2.CreateEntryReques
 		return nil, status.Errorf(codes.Internal, "failed to create entry: %v", err)
 	}
 
-	return &entry2.Entry{
-		Id:        created.ID,
-		UserId:    created.UserID,
-		Title:     created.Title,
-		Content:   created.Content,
-		Mood:      created.Mood,
-		CreatedAt: timestamppb.New(created.CreatedAt),
-		UpdatedAt: timestamppb.New(created.UpdatedAt),
+	return &entrypb.CreateEntryResponse{
+		Entry: toProtoEntry(created, 0),
 	}, nil
 }
 
-func (s *service) GetEntry(ctx context.Context, req *entry2.GetEntryRequest) (*entry2.Entry, error) {
-	// In production, you would extract userID from context/auth token
-	userID := "user-id-from-auth" // TODO: implement proper auth
+// GetEntry RPC must return *GetEntryResponse
+func (s *service) GetEntry(ctx context.Context, req *entrypb.GetEntryRequest) (*entrypb.GetEntryResponse, error) {
+	// TODO: Replace with real userID from auth context
+	userID := "user-id-from-auth"
 
-	entry, err := s.app.GetEntry(ctx, req.Id, userID)
+	domainEntry, err := s.app.GetEntry(ctx, req.EntryId, userID)
 	if err != nil {
 		switch err {
 		case entryApp.ErrUnauthorized:
@@ -64,25 +62,19 @@ func (s *service) GetEntry(ctx context.Context, req *entry2.GetEntryRequest) (*e
 		}
 	}
 
-	return &entry2.Entry{
-		Id:        entry.ID,
-		UserId:    entry.UserID,
-		Title:     entry.Title,
-		Content:   entry.Content,
-		Mood:      entry.Mood,
-		CreatedAt: timestamppb.New(entry.CreatedAt),
-		UpdatedAt: timestamppb.New(entry.UpdatedAt),
+	return &entrypb.GetEntryResponse{
+		Entry: toProtoEntry(domainEntry, 0),
 	}, nil
 }
 
-func (s *service) UpdateEntry(ctx context.Context, req *entry2.UpdateEntryRequest) (*entry2.Entry, error) {
+// UpdateEntry RPC must return *UpdateEntryResponse
+func (s *service) UpdateEntry(ctx context.Context, req *entrypb.UpdateEntryRequest) (*entrypb.UpdateEntryResponse, error) {
 	domainEntry := &models.Entry{
-		ID:        req.Id,
-		UserID:    req.UserId,
-		Title:     req.Title,
-		Content:   req.Content,
-		Mood:      req.Mood,
-		UpdatedAt: req.UpdatedAt.AsTime(),
+		ID:          req.EntryId,
+		UserID:      req.UserId,
+		Title:       req.Title,
+		Content:     req.Content,
+		GrowthStage: models.GrowthStage(req.GrowthStage.String()),
 	}
 
 	updated, err := s.app.UpdateEntry(ctx, domainEntry)
@@ -97,19 +89,14 @@ func (s *service) UpdateEntry(ctx context.Context, req *entry2.UpdateEntryReques
 		}
 	}
 
-	return &entry2.Entry{
-		Id:        updated.ID,
-		UserId:    updated.UserID,
-		Title:     updated.Title,
-		Content:   updated.Content,
-		Mood:      updated.Mood,
-		CreatedAt: timestamppb.New(updated.CreatedAt),
-		UpdatedAt: timestamppb.New(updated.UpdatedAt),
+	return &entrypb.UpdateEntryResponse{
+		Entry: toProtoEntry(updated, 0),
 	}, nil
 }
 
-func (s *service) DeleteEntry(ctx context.Context, req *entry2.DeleteEntryRequest) (*emptypb.Empty, error) {
-	err := s.app.DeleteEntry(ctx, req.Id, req.UserId)
+// DeleteEntry RPC already returns emptypb.Empty
+func (s *service) DeleteEntry(ctx context.Context, req *entrypb.DeleteEntryRequest) (*emptypb.Empty, error) {
+	err := s.app.DeleteEntry(ctx, req.EntryId, req.UserId)
 	if err != nil {
 		switch err {
 		case entryApp.ErrUnauthorized:
@@ -118,54 +105,37 @@ func (s *service) DeleteEntry(ctx context.Context, req *entry2.DeleteEntryReques
 			return nil, status.Errorf(codes.Internal, "failed to delete entry: %v", err)
 		}
 	}
-
 	return &emptypb.Empty{}, nil
 }
 
-func (s *service) ListEntries(ctx context.Context, req *entry2.ListEntriesRequest) (*entry2.ListEntriesResponse, error) {
-	entries, err := s.app.ListEntries(ctx, req.UserId)
+// ListEntries RPC must return *ListEntriesResponse
+func (s *service) ListEntries(ctx context.Context, req *entrypb.ListEntriesRequest) (*entrypb.ListEntriesResponse, error) {
+	domainEntries, err := s.app.ListEntries(ctx, req.UserId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list entries: %v", err)
 	}
 
-	protoEntries := make([]*entry2.Entry, len(entries))
-	for i, entry := range entries {
-		protoEntries[i] = &entry2.Entry{
-			Id:        entry.ID,
-			UserId:    entry.UserID,
-			Title:     entry.Title,
-			Content:   entry.Content,
-			Mood:      entry.Mood,
-			CreatedAt: timestamppb.New(entry.CreatedAt),
-			UpdatedAt: timestamppb.New(entry.UpdatedAt),
-		}
+	protoEntries := make([]*entrypb.Entry, len(domainEntries))
+	for i, e := range domainEntries {
+		protoEntries[i] = toProtoEntry(e, 0)
 	}
 
-	return &entry2.ListEntriesResponse{
+	return &entrypb.ListEntriesResponse{
 		Entries: protoEntries,
 	}, nil
 }
 
-func (s *service) SyncEntries(ctx context.Context, req *entry2.SyncEntriesRequest) (*entry2.ListEntriesResponse, error) {
-	entries, err := s.app.SyncEntries(ctx, req.UserId, req.Since.AsTime())
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to sync entries: %v", err)
+// toProtoEntry converts a domain Entry into a proto Entry, injecting linkCount separately.
+// Replace hardcoded 0 with actual lookup when you add entry_links support.
+func toProtoEntry(domain *models.Entry, linkCount int) *entrypb.Entry {
+	return &entrypb.Entry{
+		Id:          domain.ID,
+		UserId:      domain.UserID,
+		Title:       domain.Title,
+		Content:     domain.Content,
+		CreatedAt:   timestamppb.New(domain.CreatedAt),
+		UpdatedAt:   timestamppb.New(domain.UpdatedAt),
+		GrowthStage: entrypb.GrowthStage(entrypb.GrowthStage_value[string(domain.GrowthStage)]),
+		LinkCount:   int32(linkCount),
 	}
-
-	protoEntries := make([]*entry2.Entry, len(entries))
-	for i, entry := range entries {
-		protoEntries[i] = &entry2.Entry{
-			Id:        entry.ID,
-			UserId:    entry.UserID,
-			Title:     entry.Title,
-			Content:   entry.Content,
-			Mood:      entry.Mood,
-			CreatedAt: timestamppb.New(entry.CreatedAt),
-			UpdatedAt: timestamppb.New(entry.UpdatedAt),
-		}
-	}
-
-	return &entry2.ListEntriesResponse{
-		Entries: protoEntries,
-	}, nil
 }

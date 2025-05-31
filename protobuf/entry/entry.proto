@@ -1,68 +1,115 @@
 syntax = "proto3";
 
-package lumo.entry;
+package moss.entry;
 
 option go_package = "moss/internal/genproto/entry;entry";
-
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
 
-service EntryService {
-  rpc CreateEntry(CreateEntryRequest) returns (Entry);
-  rpc GetEntry(GetEntryRequest) returns (Entry);
-  rpc UpdateEntry(UpdateEntryRequest) returns (Entry);
-  rpc DeleteEntry(DeleteEntryRequest) returns (google.protobuf.Empty);
-  rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse);
-  rpc SyncEntries(SyncEntriesRequest) returns (ListEntriesResponse);
-}
+// ===============================
+// Core Entry Message
+// ===============================
 
 message Entry {
   string id = 1;
   string user_id = 2;
   string title = 3;
   string content = 4;
-  string mood = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
+  GrowthStage growth_stage = 7;
+  int32 link_count = 8; // Only include count, not linked IDs
 }
 
+// ===============================
+// Entry Lifecycle Enum
+// ===============================
+
+enum GrowthStage {
+  SEED = 0;
+  SPROUT = 1;
+  BLOOM = 2;
+  EVERGREEN = 3;
+}
+
+// ===============================
+// CRUD Request/Response Messages
+// ===============================
+
 message CreateEntryRequest {
-  string id = 1;
-  string user_id = 2;
-  string title = 3;
-  string content = 4;
-  string mood = 5;
-  google.protobuf.Timestamp created_at = 6;
+  string user_id = 1;
+  string title = 2;
+  string content = 3;
+  GrowthStage growth_stage = 4;
+}
+
+message CreateEntryResponse {
+  Entry entry = 1;
 }
 
 message GetEntryRequest {
-  string id = 1;
+  string entry_id = 1;
+}
+
+message GetEntryResponse {
+  Entry entry = 1;
 }
 
 message UpdateEntryRequest {
-  string id = 1;
-  string user_id = 2;
-  string title = 3;
-  string content = 4;
-  string mood = 5;
-  google.protobuf.Timestamp updated_at = 6;
+  string entry_id = 1;
+  string title = 2;
+  string content = 3;
+  GrowthStage growth_stage = 4;
+}
+
+message UpdateEntryResponse {
+  Entry entry = 1;
 }
 
 message DeleteEntryRequest {
-  string id = 1;
-  string user_id = 2;
+  string entry_id = 1;
 }
+
+// ===============================
+// Pagination for Listing Entries
+// ===============================
 
 message ListEntriesRequest {
   string user_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
 }
 
 message ListEntriesResponse {
   repeated Entry entries = 1;
+  string next_page_token = 2;
 }
 
-message SyncEntriesRequest {
-  string user_id = 1;
-  google.protobuf.Timestamp since = 2;
+// ===============================
+// Linked Entries Pagination
+// ===============================
+
+message ListLinkedEntriesRequest {
+  string entry_id = 1;
+  int32 page_size = 2;
+  string page_token = 3;
+}
+
+message ListLinkedEntriesResponse {
+  repeated Entry linked_entries = 1;
+  string next_page_token = 2;
+}
+
+// ===============================
+// Entry Service
+// ===============================
+
+service EntryService {
+  rpc CreateEntry(CreateEntryRequest) returns (CreateEntryResponse);
+  rpc GetEntry(GetEntryRequest) returns (GetEntryResponse);
+  rpc UpdateEntry(UpdateEntryRequest) returns (UpdateEntryResponse);
+  rpc DeleteEntry(DeleteEntryRequest) returns (google.protobuf.Empty);
+  rpc ListEntries(ListEntriesRequest) returns (ListEntriesResponse);
+  rpc ListLinkedEntries(ListLinkedEntriesRequest) returns (ListLinkedEntriesResponse);
 }

@@ -11,26 +11,25 @@ import (
 )
 
 const createEntry = `-- name: CreateEntry :one
-INSERT INTO entries (
-    id,
-    user_id,
-    title,
-    content,
-    mood,
-    created_at,
-    updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
-    RETURNING id, user_id, title, content, mood, created_at, updated_at
+INSERT INTO entries (id,
+                     user_id,
+                     title,
+                     content,
+                     growth_stage,
+                     created_at,
+                     updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7)
+RETURNING id, user_id, title, content, growth_stage, created_at, updated_at
 `
 
 type CreateEntryParams struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Mood      string    `json:"mood"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	GrowthStage string    `json:"growth_stage"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry, error) {
@@ -39,7 +38,7 @@ func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry
 		arg.UserID,
 		arg.Title,
 		arg.Content,
-		arg.Mood,
+		arg.GrowthStage,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -49,7 +48,7 @@ func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry
 		&i.UserID,
 		&i.Title,
 		&i.Content,
-		&i.Mood,
+		&i.GrowthStage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -57,7 +56,8 @@ func (q *Queries) CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry
 }
 
 const deleteEntry = `-- name: DeleteEntry :exec
-DELETE FROM entries
+DELETE
+FROM entries
 WHERE id = $1
 `
 
@@ -67,7 +67,8 @@ func (q *Queries) DeleteEntry(ctx context.Context, id string) error {
 }
 
 const getEntryByID = `-- name: GetEntryByID :one
-SELECT id, user_id, title, content, mood, created_at, updated_at FROM entries
+SELECT id, user_id, title, content, growth_stage, created_at, updated_at
+FROM entries
 WHERE id = $1
 `
 
@@ -79,7 +80,7 @@ func (q *Queries) GetEntryByID(ctx context.Context, id string) (Entry, error) {
 		&i.UserID,
 		&i.Title,
 		&i.Content,
-		&i.Mood,
+		&i.GrowthStage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -87,7 +88,8 @@ func (q *Queries) GetEntryByID(ctx context.Context, id string) (Entry, error) {
 }
 
 const listEntriesByUser = `-- name: ListEntriesByUser :many
-SELECT id, user_id, title, content, mood, created_at, updated_at FROM entries
+SELECT id, user_id, title, content, growth_stage, created_at, updated_at
+FROM entries
 WHERE user_id = $1
 ORDER BY created_at
 `
@@ -106,7 +108,7 @@ func (q *Queries) ListEntriesByUser(ctx context.Context, userID string) ([]Entry
 			&i.UserID,
 			&i.Title,
 			&i.Content,
-			&i.Mood,
+			&i.GrowthStage,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -124,8 +126,10 @@ func (q *Queries) ListEntriesByUser(ctx context.Context, userID string) ([]Entry
 }
 
 const listEntriesByUserSince = `-- name: ListEntriesByUserSince :many
-SELECT id, user_id, title, content, mood, created_at, updated_at FROM entries
-WHERE user_id = $1 AND updated_at > $2
+SELECT id, user_id, title, content, growth_stage, created_at, updated_at
+FROM entries
+WHERE user_id = $1
+  AND updated_at > $2
 ORDER BY updated_at
 `
 
@@ -148,7 +152,7 @@ func (q *Queries) ListEntriesByUserSince(ctx context.Context, arg ListEntriesByU
 			&i.UserID,
 			&i.Title,
 			&i.Content,
-			&i.Mood,
+			&i.GrowthStage,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -167,20 +171,20 @@ func (q *Queries) ListEntriesByUserSince(ctx context.Context, arg ListEntriesByU
 
 const updateEntry = `-- name: UpdateEntry :one
 UPDATE entries
-SET title = $2,
-    content = $3,
-    mood = $4,
-    updated_at = $5
+SET title        = $2,
+    content      = $3,
+    growth_stage = $4,
+    updated_at   = $5
 WHERE id = $1
-    RETURNING id, user_id, title, content, mood, created_at, updated_at
+RETURNING id, user_id, title, content, growth_stage, created_at, updated_at
 `
 
 type UpdateEntryParams struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	Mood      string    `json:"mood"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	GrowthStage string    `json:"growth_stage"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (q *Queries) UpdateEntry(ctx context.Context, arg UpdateEntryParams) (Entry, error) {
@@ -188,7 +192,7 @@ func (q *Queries) UpdateEntry(ctx context.Context, arg UpdateEntryParams) (Entry
 		arg.ID,
 		arg.Title,
 		arg.Content,
-		arg.Mood,
+		arg.GrowthStage,
 		arg.UpdatedAt,
 	)
 	var i Entry
@@ -197,7 +201,7 @@ func (q *Queries) UpdateEntry(ctx context.Context, arg UpdateEntryParams) (Entry
 		&i.UserID,
 		&i.Title,
 		&i.Content,
-		&i.Mood,
+		&i.GrowthStage,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

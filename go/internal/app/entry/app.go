@@ -3,10 +3,8 @@ package entry
 import (
 	"context"
 	"errors"
-	"lumo/go/internal/models/entry"
-	entryRepo "lumo/go/internal/repository/entry"
-	_ "lumo/internal/models/entry"
-	"time"
+	models "moss/go/internal/models/entry"
+	entryRepo "moss/go/internal/repository/entry"
 )
 
 var (
@@ -20,7 +18,6 @@ type App interface {
 	UpdateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error)
 	DeleteEntry(ctx context.Context, id string, userID string) error
 	ListEntries(ctx context.Context, userID string) ([]*models.Entry, error)
-	SyncEntries(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error)
 }
 
 type app struct {
@@ -28,9 +25,7 @@ type app struct {
 }
 
 func NewApp(repo entryRepo.Repository) App {
-	return &app{
-		repo: repo,
-	}
+	return &app{repo: repo}
 }
 
 func (a *app) CreateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error) {
@@ -47,7 +42,6 @@ func (a *app) GetEntry(ctx context.Context, id string, userID string) (*models.E
 		return nil, err
 	}
 
-	// Ensure user can only access their own entries
 	if entry.UserID != userID {
 		return nil, ErrUnauthorized
 	}
@@ -60,7 +54,6 @@ func (a *app) UpdateEntry(ctx context.Context, entry *models.Entry) (*models.Ent
 		return nil, ErrInvalidEntry
 	}
 
-	// Verify ownership
 	existing, err := a.repo.GetByID(ctx, entry.ID)
 	if err != nil {
 		return nil, err
@@ -74,7 +67,6 @@ func (a *app) UpdateEntry(ctx context.Context, entry *models.Entry) (*models.Ent
 }
 
 func (a *app) DeleteEntry(ctx context.Context, id string, userID string) error {
-	// Verify ownership
 	existing, err := a.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
@@ -89,8 +81,4 @@ func (a *app) DeleteEntry(ctx context.Context, id string, userID string) error {
 
 func (a *app) ListEntries(ctx context.Context, userID string) ([]*models.Entry, error) {
 	return a.repo.ListByUser(ctx, userID)
-}
-
-func (a *app) SyncEntries(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error) {
-	return a.repo.ListByUserSince(ctx, userID, since)
 }

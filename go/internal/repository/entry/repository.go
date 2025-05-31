@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"lumo/go/internal/models/entry"
-	"lumo/go/internal/repository/db/sqlc"
 	"time"
+
+	models "moss/go/internal/models/entry"
+	sqlc "moss/go/internal/repository/db/sqlc"
 )
 
 var ErrEntryNotFound = errors.New("entry not found")
@@ -15,18 +16,18 @@ type Repository interface {
 	Create(ctx context.Context, e *models.Entry) (*models.Entry, error)
 	GetByID(ctx context.Context, id string) (*models.Entry, error)
 	ListByUser(ctx context.Context, userID string) ([]*models.Entry, error)
+	ListByUserSince(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error)
 	Update(ctx context.Context, e *models.Entry) (*models.Entry, error)
 	Delete(ctx context.Context, id string) error
-	ListByUserSince(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error)
 }
 
 type repository struct {
-	queries *db.Queries
+	queries *sqlc.Queries
 }
 
-func NewRepository(dbConn *sql.DB) Repository {
+func NewRepository(db *sql.DB) Repository {
 	return &repository{
-		queries: db.New(dbConn),
+		queries: sqlc.New(db),
 	}
 }
 
@@ -35,14 +36,14 @@ func (r *repository) Create(ctx context.Context, e *models.Entry) (*models.Entry
 	e.CreatedAt = now
 	e.UpdatedAt = now
 
-	entry, err := r.queries.CreateEntry(ctx, db.CreateEntryParams{
-		ID:        e.ID,
-		UserID:    e.UserID,
-		Title:     e.Title,
-		Content:   e.Content,
-		Mood:      e.Mood,
-		CreatedAt: e.CreatedAt,
-		UpdatedAt: e.UpdatedAt,
+	entry, err := r.queries.CreateEntry(ctx, sqlc.CreateEntryParams{
+		ID:          e.ID,
+		UserID:      e.UserID,
+		Title:       e.Title,
+		Content:     e.Content,
+		GrowthStage: string(e.GrowthStage),
+		CreatedAt:   e.CreatedAt,
+		UpdatedAt:   e.UpdatedAt,
 	})
 	if err != nil {
 		return nil, err
@@ -52,34 +53,47 @@ func (r *repository) Create(ctx context.Context, e *models.Entry) (*models.Entry
 }
 
 func (r *repository) GetByID(ctx context.Context, id string) (*models.Entry, error) {
-	entry, err := r.queries.GetEntryByID(ctx, id)
+	dbEntry, err := r.queries.GetEntryByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrEntryNotFound
 		}
 		return nil, err
 	}
-	return fromDBEntry(entry), nil
+
+	return fromDBEntry(dbEntry), nil
 }
 
 func (r *repository) ListByUser(ctx context.Context, userID string) ([]*models.Entry, error) {
-	entries, err := r.queries.ListEntriesByUser(ctx, userID)
+	dbEntries, err := r.queries.ListEntriesByUser(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	return fromDBEntries(entries), nil
+
+	return fromDBEntries(dbEntries), nil
+}
+
+func (r *repository) ListByUserSince(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error) {
+	dbEntries, err := r.queries.ListEntriesByUserSince(ctx, sqlc.ListEntriesByUserSinceParams{
+		UserID:    userID,
+		UpdatedAt: since,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return fromDBEntries(dbEntries), nil
 }
 
 func (r *repository) Update(ctx context.Context, e *models.Entry) (*models.Entry, error) {
-	now := time.Now().UTC()
-	e.UpdatedAt = now
+	e.UpdatedAt = time.Now().UTC()
 
-	entry, err := r.queries.UpdateEntry(ctx, db.UpdateEntryParams{
-		ID:        e.ID,
-		Title:     e.Title,
-		Content:   e.Content,
-		Mood:      e.Mood,
-		UpdatedAt: e.UpdatedAt,
+	entry, err := r.queries.UpdateEntry(ctx, sqlc.UpdateEntryParams{
+		ID:          e.ID,
+		Title:       e.Title,
+		Content:     e.Content,
+		GrowthStage: string(e.GrowthStage),
+		UpdatedAt:   e.UpdatedAt,
 	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -87,6 +101,7 @@ func (r *repository) Update(ctx context.Context, e *models.Entry) (*models.Entry
 		}
 		return nil, err
 	}
+
 	return fromDBEntry(entry), nil
 }
 
@@ -101,34 +116,22 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func (r *repository) ListByUserSince(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error) {
-	entries, err := r.queries.ListEntriesByUserSince(ctx, db.ListEntriesByUserSinceParams{
-		UserID:    userID,
-		UpdatedAt: since,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return fromDBEntries(entries), nil
-}
-
-// Helper functions to convert between SQLC and domain models
-func fromDBEntry(e db.Entry) *models.Entry {
+func fromDBEntry(dbEntry sqlc.Entry) *models.Entry {
 	return &models.Entry{
-		ID:        e.ID,
-		UserID:    e.UserID,
-		Title:     e.Title,
-		Content:   e.Content,
-		Mood:      e.Mood,
-		CreatedAt: e.CreatedAt,
-		UpdatedAt: e.UpdatedAt,
+		ID:          dbEntry.ID,
+		UserID:      dbEntry.UserID,
+		Title:       dbEntry.Title,
+		Content:     dbEntry.Content,
+		GrowthStage: models.GrowthStage(dbEntry.GrowthStage),
+		CreatedAt:   dbEntry.CreatedAt,
+		UpdatedAt:   dbEntry.UpdatedAt,
 	}
 }
 
-func fromDBEntries(entries []db.Entry) []*models.Entry {
-	result := make([]*models.Entry, len(entries))
-	for i, e := range entries {
-		result[i] = fromDBEntry(e)
+func fromDBEntries(dbEntries []sqlc.Entry) []*models.Entry {
+	entries := make([]*models.Entry, len(dbEntries))
+	for i, dbEntry := range dbEntries {
+		entries[i] = fromDBEntry(dbEntry)
 	}
-	return result
+	return entries
 }
