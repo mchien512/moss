@@ -42,27 +42,45 @@ proto-clean:
 	rm -rf $(PROTO_DST)
 	@echo "✅ $(PROTO_DST)/ cleaned."
 
+# Database and SQLC related commands
+.PHONY: db-start db-stop db-reset db-psql sqlc-gen
 
-
-# Start postgres container
-up:
+# Start the database container
+db-start:
+	@echo "🚀 Starting PostgreSQL container..."
 	docker-compose up -d postgres
-	@echo "Waiting for postgres to be ready..."
-	@sleep 3
 
-# Stop postgres container
-down:
+# Stop the database container
+db-stop:
+	@echo "🛑 Stopping PostgreSQL container..."
+	docker-compose stop postgres
+
+# Reset database (delete volume and restart)
+db-reset:
+	@echo "🗑️  Removing PostgreSQL container and volume..."
+	docker-compose down -v
+	@echo "🚀 Starting fresh PostgreSQL container..."
+	docker-compose up -d postgres
+
+# Connect to PostgreSQL using psql
+db-psql:
+	@echo "🔌 Connecting to PostgreSQL..."
+	docker-compose exec postgres psql -U postgres -d lumo_db
+
+# Database down command - removes containers and optionally volumes
+.PHONY: db-down db-down-v
+
+# Stop and remove containers but preserve the data
+db-down:
+	@echo "🛑 Stopping and removing PostgreSQL container..."
 	docker-compose down
+	@echo "✅ Database container removed. Data volume is preserved."
 
-# Connect to postgres - using docker exec instead of docker-compose exec
-psql:
-	@if [ "$$(docker ps -q -f name=lumo-postgres-1)" ]; then \
-		docker exec -it lumo-postgres-1 psql -U postgres -d lumo_db; \
-	else \
-		echo "Postgres is not running. Starting it now..."; \
-		$(MAKE) up; \
-		docker exec -it lumo_db psql -U postgres -d lumo_db; \
-	fi
+# Stop and remove containers AND delete volume data
+db-down-v:
+	@echo "🗑️ Stopping PostgreSQL container and removing all data..."
+	docker-compose down -v
+	@echo "✅ Database container and volume removed completely."
 
 
 
