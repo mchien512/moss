@@ -1,4 +1,4 @@
-package entry
+package repository
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"errors"
 	"time"
 
+	"moss/go/internal/entry/repository/db/sqlc"
 	models "moss/go/internal/models/entry"
-	sqlc "moss/go/internal/repository/db/sqlc"
 )
 
 var ErrEntryNotFound = errors.New("entry not found")
@@ -22,12 +22,12 @@ type Repository interface {
 }
 
 type repository struct {
-	queries *sqlc.Queries
+	queries *db.Queries
 }
 
-func NewRepository(db *sql.DB) Repository {
+func NewRepository(dbConn *sql.DB) Repository {
 	return &repository{
-		queries: sqlc.New(db),
+		queries: db.New(dbConn),
 	}
 }
 
@@ -36,7 +36,7 @@ func (r *repository) Create(ctx context.Context, e *models.Entry) (*models.Entry
 	e.CreatedAt = now
 	e.UpdatedAt = now
 
-	entry, err := r.queries.CreateEntry(ctx, sqlc.CreateEntryParams{
+	entry, err := r.queries.CreateEntry(ctx, db.CreateEntryParams{
 		ID:          e.ID,
 		UserID:      e.UserID,
 		Title:       e.Title,
@@ -74,7 +74,7 @@ func (r *repository) ListByUser(ctx context.Context, userID string) ([]*models.E
 }
 
 func (r *repository) ListByUserSince(ctx context.Context, userID string, since time.Time) ([]*models.Entry, error) {
-	dbEntries, err := r.queries.ListEntriesByUserSince(ctx, sqlc.ListEntriesByUserSinceParams{
+	dbEntries, err := r.queries.ListEntriesByUserSince(ctx, db.ListEntriesByUserSinceParams{
 		UserID:    userID,
 		UpdatedAt: since,
 	})
@@ -88,7 +88,7 @@ func (r *repository) ListByUserSince(ctx context.Context, userID string, since t
 func (r *repository) Update(ctx context.Context, e *models.Entry) (*models.Entry, error) {
 	e.UpdatedAt = time.Now().UTC()
 
-	entry, err := r.queries.UpdateEntry(ctx, sqlc.UpdateEntryParams{
+	entry, err := r.queries.UpdateEntry(ctx, db.UpdateEntryParams{
 		ID:          e.ID,
 		Title:       e.Title,
 		Content:     e.Content,
@@ -116,7 +116,7 @@ func (r *repository) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-func fromDBEntry(dbEntry sqlc.Entry) *models.Entry {
+func fromDBEntry(dbEntry db.Entry) *models.Entry {
 	return &models.Entry{
 		ID:          dbEntry.ID,
 		UserID:      dbEntry.UserID,
@@ -128,7 +128,7 @@ func fromDBEntry(dbEntry sqlc.Entry) *models.Entry {
 	}
 }
 
-func fromDBEntries(dbEntries []sqlc.Entry) []*models.Entry {
+func fromDBEntries(dbEntries []db.Entry) []*models.Entry {
 	entries := make([]*models.Entry, len(dbEntries))
 	for i, dbEntry := range dbEntries {
 		entries[i] = fromDBEntry(dbEntry)

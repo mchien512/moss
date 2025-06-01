@@ -2,18 +2,44 @@
 // versions:
 //   sqlc v1.29.0
 
-package db
+package sqlc
 
 import (
 	"context"
 )
 
 type Querier interface {
+	// 5. Count how many outgoing links a given entry has
+	// (useful for setting “link_count” in your proto if you want outgoing count)
+	CountLinksBySource(ctx context.Context, sourceEntryID string) (int64, error)
+	// 6. Count how many incoming links a given entry has
+	// (useful for backlink counts)
+	CountLinksByTarget(ctx context.Context, targetEntryID string) (int64, error)
 	CreateEntry(ctx context.Context, arg CreateEntryParams) (Entry, error)
+	// go/internal/link/repository/db/queries/entry_links.sql
+	// 1. Insert a new link between two entries
+	// Returns the inserted row (so SQLC can map it to an EntryLink struct).
+	CreateEntryLink(ctx context.Context, arg CreateEntryLinkParams) (EntryLink, error)
 	DeleteEntry(ctx context.Context, id string) error
+	// 2. Delete a link (unlink two entries)
+	DeleteEntryLink(ctx context.Context, arg DeleteEntryLinkParams) error
 	GetEntryByID(ctx context.Context, id string) (Entry, error)
+	// offset (page_token converted to integer)
+	// 8. (Optional) List the actual Entry rows that link *into* a given entry,
+	//     with pagination. Adjust as above.
+	ListBacklinkedEntries(ctx context.Context, arg ListBacklinkedEntriesParams) ([]Entry, error)
 	ListEntriesByUser(ctx context.Context, userID string) ([]Entry, error)
 	ListEntriesByUserSince(ctx context.Context, arg ListEntriesByUserSinceParams) ([]Entry, error)
+	// 7. (Optional) List the actual Entry rows that a given source is linked to,
+	//     with pagination parameters (page size + offset). This is if you want to
+	//     fetch full Entry data in one go. Adjust the SELECT columns as needed.
+	ListLinkedEntries(ctx context.Context, arg ListLinkedEntriesParams) ([]Entry, error)
+	// 3. List all links where a given entry is the “source”
+	// (i.e. all outgoing links from entry X)
+	ListLinksBySource(ctx context.Context, sourceEntryID string) ([]EntryLink, error)
+	// 4. List all links where a given entry is the “target”
+	// (i.e. all incoming/backlinks to entry X)
+	ListLinksByTarget(ctx context.Context, targetEntryID string) ([]EntryLink, error)
 	UpdateEntry(ctx context.Context, arg UpdateEntryParams) (Entry, error)
 }
 

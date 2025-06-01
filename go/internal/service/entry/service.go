@@ -1,10 +1,9 @@
-package entry
+package service
 
 import (
 	"context"
 	"errors"
-
-	entryApp "moss/go/internal/app/entry"
+	entryApp "moss/go/internal/app"
 	entrypb "moss/go/internal/genproto/entry"
 	models "moss/go/internal/models/entry"
 

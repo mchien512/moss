@@ -1,14 +1,29 @@
 version: "2"
+
 sql:
   - engine: "postgresql"
-    queries: "./queries"
-    schema: "./schema"
+
+    # Because sqlc.yaml is in go/internal/repository/db/,
+    # these globs are relative to that folder:
+    schema:
+      - "schema/*.sql"
+    queries:
+      - "queries/*.sql"
+
     gen:
       go:
-        package: "db"
-        out: "./sqlc"
-        emit_json_tags: true
-        emit_prepared_queries: false
-        emit_interface: true
+        # The Go *package name* inside each generated file.
+        # Since the files will live in .../db/sqlc, you can name
+        # this "sqlc" so that each generated .go starts with `package sqlc`.
+        package: "sqlc"
+
+        # Where sqlc should put the generated .go files, *relative to the repo root*.
+        # By specifying "go/internal/repository/db/sqlc", sqlc knows to create exactly:
+        #    moss/go/internal/repository/db/sqlc/
+        out: "sqlc"
+
+        emit_json_tags:         true
+        emit_prepared_queries:  false
+        emit_interface:         true
         emit_exact_table_names: false
-        emit_empty_slices: false
+        emit_empty_slices:      false

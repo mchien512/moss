@@ -2,7 +2,7 @@
 // versions:
 //   sqlc v1.29.0
 
-package db
+package sqlc
 
 import (
 	"time"
@@ -16,4 +16,11 @@ type Entry struct {
 	GrowthStage string    `json:"growth_stage"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type EntryLink struct {
+	SourceEntryID string    `json:"source_entry_id"`
+	TargetEntryID string    `json:"target_entry_id"`
+	UserID        string    `json:"user_id"`
+	CreatedAt     time.Time `json:"created_at"`
 }
