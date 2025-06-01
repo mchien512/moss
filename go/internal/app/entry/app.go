@@ -16,7 +16,7 @@ type App interface {
 	CreateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error)
 	GetEntry(ctx context.Context, id string, userID string) (*models.Entry, error)
 	UpdateEntry(ctx context.Context, entry *models.Entry) (*models.Entry, error)
-	DeleteEntry(ctx context.Context, id string, userID string) error
+	DeleteEntry(ctx context.Context, id string) error
 	ListEntries(ctx context.Context, userID string) ([]*models.Entry, error)
 }
 
@@ -66,14 +66,10 @@ func (a *app) UpdateEntry(ctx context.Context, entry *models.Entry) (*models.Ent
 	return a.repo.Update(ctx, entry)
 }
 
-func (a *app) DeleteEntry(ctx context.Context, id string, userID string) error {
-	existing, err := a.repo.GetByID(ctx, id)
+func (a *app) DeleteEntry(ctx context.Context, id string) error {
+	_, err := a.repo.GetByID(ctx, id)
 	if err != nil {
 		return err
-	}
-
-	if existing.UserID != userID {
-		return ErrUnauthorized
 	}
 
 	return a.repo.Delete(ctx, id)

@@ -1,16 +1,16 @@
 services:
   postgres:
-    container_name: moss-db
+    container_name: moss_db
     image: postgres:latest
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: lumo_db
+      POSTGRES_DB: moss_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./internal/repository/db/schema:/docker-entrypoint-initdb.d
+      - ./go/internal/repository/db/schema:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

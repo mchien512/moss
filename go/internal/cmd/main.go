@@ -1,16 +1,18 @@
 package main
 
 import (
+	"log"
+	"net"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"log"
-	"lumo/go/internal/app/entry"
-	pb "lumo/go/internal/genproto/entry"
-	"lumo/go/internal/interceptors"
-	"lumo/go/internal/repository/db"
-	entryRepo "lumo/go/internal/repository/entry"
-	entryService "lumo/go/internal/service/entry"
-	"net"
+
+	entryApp "moss/go/internal/app/entry"
+	pb "moss/go/internal/genproto/entry"
+	"moss/go/internal/interceptors"
+	"moss/go/internal/repository/db"
+	entryRepo "moss/go/internal/repository/entry"
+	entryService "moss/go/internal/service/entry"
 )
 
 func main() {
@@ -32,27 +34,26 @@ func main() {
 
 	// Initialize layers
 	repo := entryRepo.NewRepository(dbConn)
-	app := entry.NewApp(repo)
+	app := entryApp.NewApp(repo)
 	service := entryService.NewService(app)
 
-	// Initialize gRPC server
+	// Start listening on port 50051
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
 	// Create gRPC server with interceptor
-	s := grpc.NewServer(
+	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptors.UnaryServerInterceptor()),
 	)
 
-	// Register service
-	pb.RegisterEntryServiceServer(s, service)
-
-	reflection.Register(s)
+	// Register the EntryService
+	pb.RegisterEntryServiceServer(grpcServer, service)
+	reflection.Register(grpcServer)
 
 	log.Printf("Server listening at %v", lis.Addr())
-	if err := s.Serve(lis); err != nil {
+	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 }

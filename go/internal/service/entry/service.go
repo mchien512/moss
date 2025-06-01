@@ -2,6 +2,7 @@ package entry
 
 import (
 	"context"
+	"errors"
 
 	entryApp "moss/go/internal/app/entry"
 	entrypb "moss/go/internal/genproto/entry"
@@ -27,7 +28,6 @@ func NewService(app entryApp.App) entrypb.EntryServiceServer {
 // CreateEntry RPC must return *CreateEntryResponse
 func (s *service) CreateEntry(ctx context.Context, req *entrypb.CreateEntryRequest) (*entrypb.CreateEntryResponse, error) {
 	domainEntry := &models.Entry{
-		ID:          req.Id,
 		UserID:      req.UserId,
 		Title:       req.Title,
 		Content:     req.Content,
@@ -36,7 +36,7 @@ func (s *service) CreateEntry(ctx context.Context, req *entrypb.CreateEntryReque
 
 	created, err := s.app.CreateEntry(ctx, domainEntry)
 	if err != nil {
-		if err == entryApp.ErrInvalidEntry {
+		if errors.Is(entryApp.ErrInvalidEntry, err) {
 			return nil, status.Error(codes.InvalidArgument, "invalid entry")
 		}
 		return nil, status.Errorf(codes.Internal, "failed to create entry: %v", err)
@@ -71,7 +71,6 @@ func (s *service) GetEntry(ctx context.Context, req *entrypb.GetEntryRequest) (*
 func (s *service) UpdateEntry(ctx context.Context, req *entrypb.UpdateEntryRequest) (*entrypb.UpdateEntryResponse, error) {
 	domainEntry := &models.Entry{
 		ID:          req.EntryId,
-		UserID:      req.UserId,
 		Title:       req.Title,
 		Content:     req.Content,
 		GrowthStage: models.GrowthStage(req.GrowthStage.String()),
@@ -96,7 +95,7 @@ func (s *service) UpdateEntry(ctx context.Context, req *entrypb.UpdateEntryReque
 
 // DeleteEntry RPC already returns emptypb.Empty
 func (s *service) DeleteEntry(ctx context.Context, req *entrypb.DeleteEntryRequest) (*emptypb.Empty, error) {
-	err := s.app.DeleteEntry(ctx, req.EntryId, req.UserId)
+	err := s.app.DeleteEntry(ctx, req.EntryId)
 	if err != nil {
 		switch err {
 		case entryApp.ErrUnauthorized:
