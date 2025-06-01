@@ -1,17 +1,9 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Makefile (place this at the project root, alongside go.mod and main.go)
-# ─────────────────────────────────────────────────────────────────────────────
-
-# 1) All your .proto files live under:
 PROTO_SRC := protobuf
 
-# 2) Base directory where generated Go code will be written:
 PROTO_DST := go/internal/genproto
 
-# 3) Find every .proto file under $(PROTO_SRC):
 PROTO_FILES := $(shell find $(PROTO_SRC) -name "*.proto")
 
-# 4) Ensure protoc-gen-go & protoc-gen-go-grpc are on your PATH:
 PATH := $(PATH):$(shell go env GOPATH)/bin
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -19,7 +11,7 @@ PATH := $(PATH):$(shell go env GOPATH)/bin
 # ─────────────────────────────────────────────────────────────────────────────
 .PHONY: proto
 proto:
-	@echo "🔄 Regenerating Go stubs from all .proto files…"
+	@echo "Regenerating Go stubs from all .proto files…"
 	@for proto_file in $(PROTO_FILES); do \
 		rel_path=$${proto_file#$(PROTO_SRC)/}; \
 		mkdir -p $(PROTO_DST); \
@@ -31,35 +23,35 @@ proto:
 		\
 		echo "  • Generated: $$proto_file → $(PROTO_DST)/$${rel_path%.proto}.pb.go"; \
 	done
-	@echo "✅ Done generating all .proto → Go files."
+	@echo "Done generating all .proto → Go files."
 
 # ─────────────────────────────────────────────────────────────────────────────
 # “make proto-clean”: remove all generated code under $(PROTO_DST)
 # ─────────────────────────────────────────────────────────────────────────────
 .PHONY: proto-clean
 proto-clean:
-	@echo "🧹 Removing generated code under $(PROTO_DST)/…"
+	@echo "Removing generated code under $(PROTO_DST)/…"
 	rm -rf $(PROTO_DST)
-	@echo "✅ $(PROTO_DST)/ cleaned."
+	@echo "$(PROTO_DST)/ cleaned."
 
 # Database and SQLC related commands
 .PHONY: db-start db-stop db-reset db-psql sqlc-gen
 
 # Start the database container
 db-start:
-	@echo "🚀 Starting PostgreSQL container..."
+	@echo "Starting PostgreSQL container..."
 	docker-compose up -d postgres
 
 # Stop the database container
 db-stop:
-	@echo "🛑 Stopping PostgreSQL container..."
+	@echo "Stopping PostgreSQL container..."
 	docker-compose stop postgres
 
 # Reset database (delete volume and restart)
 db-reset:
-	@echo "🗑️  Removing PostgreSQL container and volume..."
+	@echo "Removing PostgreSQL container and volume..."
 	docker-compose down -v
-	@echo "🚀 Starting fresh PostgreSQL container..."
+	@echo "Starting fresh PostgreSQL container..."
 	docker-compose up -d postgres
 
 # Connect to PostgreSQL using psql
@@ -72,15 +64,15 @@ db-psql:
 
 # Stop and remove containers but preserve the data
 db-down:
-	@echo "🛑 Stopping and removing PostgreSQL container..."
+	@echo "Stopping and removing PostgreSQL container..."
 	docker-compose down
-	@echo "✅ Database container removed. Data volume is preserved."
+	@echo "Database container removed. Data volume is preserved."
 
 # Stop and remove containers AND delete volume data
 db-down-v:
-	@echo "🗑️ Stopping PostgreSQL container and removing all data..."
+	@echo "Stopping PostgreSQL container and removing all data..."
 	docker-compose down -v
-	@echo "✅ Database container and volume removed completely."
+	@echo "Database container and volume removed completely."
 
 
 

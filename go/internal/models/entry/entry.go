@@ -28,9 +28,6 @@ type Entry struct {
 var ErrInvalidEntry = errors.New("invalid entry: missing required fields")
 
 func (e *Entry) Validate() error {
-	if e.UserID == "" {
-		return errors.New("entry must have a UserID")
-	}
 	if e.Title == "" {
 		return errors.New("entry must have a Title")
 	}

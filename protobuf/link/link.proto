@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package moss.link;
+
+option go_package = "moss/internal/genproto/link;link";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+service LinkService {
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+  rpc DeleteLink(DeleteLinkRequest) returns (google.protobuf.Empty);
+  rpc ListLinksBySource(ListLinksBySourceRequest) returns (ListLinksBySourceResponse);
+  rpc ListLinksByTarget(ListLinksByTargetRequest) returns (ListLinksByTargetResponse);
+  rpc CountLinksBySource(CountLinksBySourceRequest) returns (CountLinksBySourceResponse);
+  rpc CountLinksByTarget(CountLinksByTargetRequest) returns (CountLinksByTargetResponse);
+}
+
+message Link {
+  string source_entry_id = 1;       // UUID of the source entry
+  string target_entry_id = 2;       // UUID of the target entry
+  string user_id = 3;               // UUID of the user who created/owns this link
+  google.protobuf.Timestamp created_at = 4;
+}
+
+// Create a new link between two entries
+message CreateLinkRequest {
+  string source_entry_id = 1;
+  string target_entry_id = 2;
+  string user_id = 3;
+}
+
+message CreateLinkResponse {
+  Link link = 1;
+}
+
+// Delete an existing link (unlink two entries)
+message DeleteLinkRequest {
+  string source_entry_id = 1;
+  string target_entry_id = 2;
+}
+
+// List all outgoing links for a given source entry
+message ListLinksBySourceRequest {
+  string source_entry_id = 1;
+}
+
+message ListLinksBySourceResponse {
+  repeated Link links = 1;
+}
+
+// List all incoming/backlinks for a given target entry
+message ListLinksByTargetRequest {
+  string target_entry_id = 1;
+}
+
+message ListLinksByTargetResponse {
+  repeated Link links = 1;
+}
+
+// Count how many outgoing links a given entry has
+message CountLinksBySourceRequest {
+  string source_entry_id = 1;
+}
+
+message CountLinksBySourceResponse {
+  int64 count = 1;
+}
+
+// Count how many incoming links a given entry has
+message CountLinksByTargetRequest {
+  string target_entry_id = 1;
+}
+
+message CountLinksByTargetResponse {
+  int64 count = 1;
+}
+

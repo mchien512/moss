@@ -8,11 +8,15 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	entryApp "moss/go/internal/app/entry"
-	pb "moss/go/internal/genproto/entry"
+	linkApp "moss/go/internal/app/link"
+	pbentry "moss/go/internal/genproto/entry"
+	pblink "moss/go/internal/genproto/link"
 	"moss/go/internal/interceptors"
 	"moss/go/internal/repository/db"
 	entryRepo "moss/go/internal/repository/entry"
+	linkRepo "moss/go/internal/repository/link"
 	entryService "moss/go/internal/service/entry"
+	"moss/go/internal/service/link"
 )
 
 func main() {
@@ -37,6 +41,10 @@ func main() {
 	app := entryApp.NewApp(repo)
 	service := entryService.NewService(app)
 
+	linkRepo := linkRepo.NewRepository(dbConn)
+	linkApp := linkApp.NewApp(linkRepo)
+	linkService := link.NewService(linkApp)
+
 	// Start listening on port 50051
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
@@ -49,7 +57,10 @@ func main() {
 	)
 
 	// Register the EntryService
-	pb.RegisterEntryServiceServer(grpcServer, service)
+	pbentry.RegisterEntryServiceServer(grpcServer, service)
+	// Register the LinkService
+	pblink.RegisterLinkServiceServer(grpcServer, linkService)
+
 	reflection.Register(grpcServer)
 
 	log.Printf("Server listening at %v", lis.Addr())

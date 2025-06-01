@@ -1,4 +1,4 @@
-package service
+package entry
 
 import (
 	entrypb "moss/go/internal/genproto/entry"

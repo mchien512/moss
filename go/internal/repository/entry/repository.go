@@ -1,12 +1,12 @@
-package repository
+package entry
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	db "moss/go/internal/repository/db/sqlc"
 	"time"
 
-	"moss/go/internal/entry/repository/db/sqlc"
 	models "moss/go/internal/models/entry"
 )
 
