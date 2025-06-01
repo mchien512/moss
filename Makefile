@@ -34,6 +34,13 @@ proto-clean:
 	rm -rf $(PROTO_DST)
 	@echo "$(PROTO_DST)/ cleaned."
 
+.PHONY: buf-generate
+buf-generate:
+	@echo "Generating code with buf..."
+	buf generate
+	@echo "Done generating code with buf."
+
+
 # Database and SQLC related commands
 .PHONY: db-start db-stop db-reset db-psql sqlc-gen
 

@@ -3,114 +3,114 @@ package entry
 import (
 	"context"
 	"errors"
+	"fmt"
+
+	"connectrpc.com/connect"
 	entryApp "moss/go/internal/app/entry"
-	entrypb "moss/go/internal/genproto/entry"
+	entrypb "moss/go/internal/genproto/protobuf/entry"
 	models "moss/go/internal/models/entry"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// service implements entrypb.EntryServiceServer
-type service struct {
-	entrypb.UnimplementedEntryServiceServer
+// Service implements the EntryServiceHandler interface
+type Service struct {
 	app entryApp.App
 }
 
-// NewService constructs a new gRPC service for entries.
-func NewService(app entryApp.App) entrypb.EntryServiceServer {
-	return &service{app: app}
+// NewService constructs a new Connect service for entries.
+func NewService(app entryApp.App) *Service {
+	return &Service{app: app}
 }
 
-// CreateEntry RPC must return *CreateEntryResponse
-func (s *service) CreateEntry(ctx context.Context, req *entrypb.CreateEntryRequest) (*entrypb.CreateEntryResponse, error) {
+// CreateEntry implements the EntryServiceHandler interface
+func (s *Service) CreateEntry(ctx context.Context, req *connect.Request[entrypb.CreateEntryRequest]) (*connect.Response[entrypb.CreateEntryResponse], error) {
 	domainEntry := &models.Entry{
-		UserID:      req.UserId,
-		Title:       req.Title,
-		Content:     req.Content,
-		GrowthStage: models.GrowthStage(req.GrowthStage.String()),
+		UserID:      req.Msg.UserId,
+		Title:       req.Msg.Title,
+		Content:     req.Msg.Content,
+		GrowthStage: models.GrowthStage(req.Msg.GrowthStage.String()),
 	}
 
 	created, err := s.app.CreateEntry(ctx, domainEntry)
 	if err != nil {
 		if errors.Is(entryApp.ErrInvalidEntry, err) {
-			return nil, status.Error(codes.InvalidArgument, "invalid entry")
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid entry"))
 		}
-		return nil, status.Errorf(codes.Internal, "failed to create entry: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create entry: %w", err))
 	}
 
-	return &entrypb.CreateEntryResponse{
+	return connect.NewResponse(&entrypb.CreateEntryResponse{
 		Entry: toProtoEntry(created, 0),
-	}, nil
+	}), nil
 }
 
-// GetEntry RPC must return *GetEntryResponse
-func (s *service) GetEntry(ctx context.Context, req *entrypb.GetEntryRequest) (*entrypb.GetEntryResponse, error) {
+// GetEntry implements the EntryServiceHandler interface
+func (s *Service) GetEntry(ctx context.Context, req *connect.Request[entrypb.GetEntryRequest]) (*connect.Response[entrypb.GetEntryResponse], error) {
 	// TODO: Replace with real userID from auth context
 	userID := "user-id-from-auth"
 
-	domainEntry, err := s.app.GetEntry(ctx, req.EntryId, userID)
+	domainEntry, err := s.app.GetEntry(ctx, req.Msg.EntryId, userID)
 	if err != nil {
 		switch err {
 		case entryApp.ErrUnauthorized:
-			return nil, status.Error(codes.PermissionDenied, "unauthorized access")
+			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("unauthorized access"))
 		default:
-			return nil, status.Errorf(codes.Internal, "failed to get entry: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get entry: %w", err))
 		}
 	}
 
-	return &entrypb.GetEntryResponse{
+	return connect.NewResponse(&entrypb.GetEntryResponse{
 		Entry: toProtoEntry(domainEntry, 0),
-	}, nil
+	}), nil
 }
 
-// UpdateEntry RPC must return *UpdateEntryResponse
-func (s *service) UpdateEntry(ctx context.Context, req *entrypb.UpdateEntryRequest) (*entrypb.UpdateEntryResponse, error) {
+// UpdateEntry implements the EntryServiceHandler interface
+func (s *Service) UpdateEntry(ctx context.Context, req *connect.Request[entrypb.UpdateEntryRequest]) (*connect.Response[entrypb.UpdateEntryResponse], error) {
 	domainEntry := &models.Entry{
-		ID:          req.EntryId,
-		Title:       req.Title,
-		Content:     req.Content,
-		GrowthStage: models.GrowthStage(req.GrowthStage.String()),
+		ID:          req.Msg.EntryId,
+		Title:       req.Msg.Title,
+		Content:     req.Msg.Content,
+		GrowthStage: models.GrowthStage(req.Msg.GrowthStage.String()),
 	}
 
 	updated, err := s.app.UpdateEntry(ctx, domainEntry)
 	if err != nil {
 		switch err {
 		case entryApp.ErrInvalidEntry:
-			return nil, status.Error(codes.InvalidArgument, "invalid entry")
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid entry"))
 		case entryApp.ErrUnauthorized:
-			return nil, status.Error(codes.PermissionDenied, "unauthorized access")
+			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("unauthorized access"))
 		default:
-			return nil, status.Errorf(codes.Internal, "failed to update entry: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update entry: %w", err))
 		}
 	}
 
-	return &entrypb.UpdateEntryResponse{
+	return connect.NewResponse(&entrypb.UpdateEntryResponse{
 		Entry: toProtoEntry(updated, 0),
-	}, nil
+	}), nil
 }
 
-// DeleteEntry RPC already returns emptypb.Empty
-func (s *service) DeleteEntry(ctx context.Context, req *entrypb.DeleteEntryRequest) (*emptypb.Empty, error) {
-	err := s.app.DeleteEntry(ctx, req.EntryId)
+// DeleteEntry implements the EntryServiceHandler interface
+func (s *Service) DeleteEntry(ctx context.Context, req *connect.Request[entrypb.DeleteEntryRequest]) (*connect.Response[emptypb.Empty], error) {
+	err := s.app.DeleteEntry(ctx, req.Msg.EntryId)
 	if err != nil {
 		switch err {
 		case entryApp.ErrUnauthorized:
-			return nil, status.Error(codes.PermissionDenied, "unauthorized access")
+			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("unauthorized access"))
 		default:
-			return nil, status.Errorf(codes.Internal, "failed to delete entry: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete entry: %w", err))
 		}
 	}
-	return &emptypb.Empty{}, nil
+	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
-// ListEntries RPC must return *ListEntriesResponse
-func (s *service) ListEntries(ctx context.Context, req *entrypb.ListEntriesRequest) (*entrypb.ListEntriesResponse, error) {
-	domainEntries, err := s.app.ListEntries(ctx, req.UserId)
+// ListEntries implements the EntryServiceHandler interface
+func (s *Service) ListEntries(ctx context.Context, req *connect.Request[entrypb.ListEntriesRequest]) (*connect.Response[entrypb.ListEntriesResponse], error) {
+	domainEntries, err := s.app.ListEntries(ctx, req.Msg.UserId)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "failed to list entries: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list entries: %w", err))
 	}
 
 	protoEntries := make([]*entrypb.Entry, len(domainEntries))
@@ -118,9 +118,9 @@ func (s *service) ListEntries(ctx context.Context, req *entrypb.ListEntriesReque
 		protoEntries[i] = toProtoEntry(e, 0)
 	}
 
-	return &entrypb.ListEntriesResponse{
+	return connect.NewResponse(&entrypb.ListEntriesResponse{
 		Entries: protoEntries,
-	}, nil
+	}), nil
 }
 
 // toProtoEntry converts a domain Entry into a proto Entry, injecting linkCount separately.

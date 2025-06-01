@@ -1,0 +1,10 @@
+version: v1
+name: github.com/mchien512/moss
+deps:
+  - buf.build/googleapis/googleapis
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT

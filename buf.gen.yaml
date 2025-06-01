@@ -1,0 +1,17 @@
+version: v1
+plugins:
+  # Generate Go code
+  - name: go
+    out: go/internal/genproto
+    opt: paths=source_relative
+  # Generate Connect-Go code
+  - name: connect-go
+    out: go/internal/genproto
+    opt: paths=source_relative
+#  # For TypeScript client (optional)
+#  - name: es
+#    out: js/web/src/api/generated
+#    opt: target=ts
+#  - name: connect-web
+#    out: js/web/src/api/generated
+#    opt: target=ts

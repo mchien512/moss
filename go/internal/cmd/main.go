@@ -2,21 +2,21 @@ package main
 
 import (
 	"log"
-	"net"
+	"net/http"
 
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
+	"connectrpc.com/connect"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
 
 	entryApp "moss/go/internal/app/entry"
 	linkApp "moss/go/internal/app/link"
-	pbentry "moss/go/internal/genproto/entry"
-	pblink "moss/go/internal/genproto/link"
-	"moss/go/internal/interceptors"
+	entryconnect "moss/go/internal/genproto/protobuf/entry/entryconnect"
+	linkconnect "moss/go/internal/genproto/protobuf/link/linkconnect"
 	"moss/go/internal/repository/db"
 	entryRepo "moss/go/internal/repository/entry"
 	linkRepo "moss/go/internal/repository/link"
 	entryService "moss/go/internal/service/entry"
-	"moss/go/internal/service/link"
+	linkService "moss/go/internal/service/link"
 )
 
 func main() {
@@ -39,32 +39,58 @@ func main() {
 	// Initialize layers
 	repo := entryRepo.NewRepository(dbConn)
 	app := entryApp.NewApp(repo)
-	service := entryService.NewService(app)
+	entrySvc := entryService.NewService(app)
 
 	linkRepo := linkRepo.NewRepository(dbConn)
 	linkApp := linkApp.NewApp(linkRepo)
-	linkService := link.NewService(linkApp)
+	linkSvc := linkService.NewService(linkApp)
 
-	// Start listening on port 50051
-	lis, err := net.Listen("tcp", ":50051")
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
-
-	// Create gRPC server with interceptor
-	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptors.UnaryServerInterceptor()),
+	// Create Connect adapters for your services
+	entryServicePath, entryConnectSvc := entryconnect.NewEntryServiceHandler(
+		entrySvc,
+		connect.WithInterceptors(
+		// Add your interceptors here
+		),
 	)
 
-	// Register the EntryService
-	pbentry.RegisterEntryServiceServer(grpcServer, service)
-	// Register the LinkService
-	pblink.RegisterLinkServiceServer(grpcServer, linkService)
+	linkServicePath, linkConnectSvc := linkconnect.NewLinkServiceHandler(
+		linkSvc,
+		connect.WithInterceptors(
+		// Add your interceptors here
+		),
+	)
 
-	reflection.Register(grpcServer)
+	// Set up CORS middleware
+	corsMiddleware := func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, Connect-Protocol-Version")
+			w.Header().Set("Access-Control-Max-Age", "3600")
 
-	log.Printf("Server listening at %v", lis.Addr())
-	if err := grpcServer.Serve(lis); err != nil {
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+
+			h.ServeHTTP(w, r)
+		})
+	}
+
+	// Set up routes
+	mux := http.NewServeMux()
+	mux.Handle(entryServicePath, entryConnectSvc)
+	mux.Handle(linkServicePath, linkConnectSvc)
+
+	// Use h2c to support HTTP/2 without TLS
+	handler := corsMiddleware(mux)
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: h2c.NewHandler(handler, &http2.Server{}),
+	}
+
+	log.Printf("Connect server listening on %s", server.Addr)
+	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 }

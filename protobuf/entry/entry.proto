@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package moss.entry;
 
-option go_package = "moss/internal/genproto/entry;entry";
+option go_package = "moss/go/internal/genproto/protobuf/entry;entry";
 
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/empty.proto";
