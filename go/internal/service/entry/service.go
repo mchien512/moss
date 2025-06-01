@@ -36,7 +36,7 @@ func (s *Service) CreateEntry(ctx context.Context, req *connect.Request[entrypb.
 	created, err := s.app.CreateEntry(ctx, domainEntry)
 	if err != nil {
 		if errors.Is(entryApp.ErrInvalidEntry, err) {
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid entry"))
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid entry: %s", err))
 		}
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create entry: %w", err))
 	}

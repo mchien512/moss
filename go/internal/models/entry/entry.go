@@ -34,11 +34,11 @@ func (e *Entry) Validate() error {
 	if e.Content == "" {
 		return errors.New("entry must have Content")
 	}
-	switch e.GrowthStage {
-	case GrowthStageSeed, GrowthStageSprout, GrowthStageBloom, GrowthStageEvergreen:
-		// valid
-	default:
-		return errors.New("entry has invalid GrowthStage")
-	}
+	//switch e.GrowthStage {
+	//case GrowthStageSeed, GrowthStageSprout, GrowthStageBloom, GrowthStageEvergreen:
+	//	// valid
+	//default:
+	//	return errors.New("entry has invalid GrowthStage")
+	//}
 	return nil
 }

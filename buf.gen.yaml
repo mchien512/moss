@@ -9,9 +9,9 @@ plugins:
     out: go/internal/genproto
     opt: paths=source_relative
 #  # For TypeScript client (optional)
-#  - name: es
-#    out: js/web/src/api/generated
-#    opt: target=ts
-#  - name: connect-web
-#    out: js/web/src/api/generated
-#    opt: target=ts
+  - name: es
+    out: js/web/src/genproto
+    opt: target=ts
+  - name: connect-web
+    out: js/web/src/genproto
+    opt: target=ts
